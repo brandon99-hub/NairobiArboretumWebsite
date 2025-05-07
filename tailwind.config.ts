@@ -44,22 +44,30 @@ export default {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
+        // Arboretum custom colors
+        arboretum: {
+          "forest-green": "hsl(130, 35%, 34%)",
+          "leaf-green": "hsl(120, 25%, 65%)",
+          "earth-brown": "hsl(34, 61%, 42%)",
+          "stone-gray": "hsl(0, 0%, 45%)",
+          "off-white": "hsl(60, 10%, 98%)",
+        },
         chart: {
-          "1": "hsl(var(--chart-1))",
-          "2": "hsl(var(--chart-2))",
-          "3": "hsl(var(--chart-3))",
-          "4": "hsl(var(--chart-4))",
-          "5": "hsl(var(--chart-5))",
+          "1": "hsl(130, 35%, 34%)", // forest green
+          "2": "hsl(120, 25%, 65%)", // leaf green
+          "3": "hsl(34, 61%, 42%)", // earth brown
+          "4": "hsl(0, 0%, 45%)", // stone gray
+          "5": "hsl(60, 10%, 98%)", // off white
         },
         sidebar: {
-          DEFAULT: "hsl(var(--sidebar-background))",
-          foreground: "hsl(var(--sidebar-foreground))",
-          primary: "hsl(var(--sidebar-primary))",
-          "primary-foreground": "hsl(var(--sidebar-primary-foreground))",
-          accent: "hsl(var(--sidebar-accent))",
-          "accent-foreground": "hsl(var(--sidebar-accent-foreground))",
-          border: "hsl(var(--sidebar-border))",
-          ring: "hsl(var(--sidebar-ring))",
+          DEFAULT: "hsl(var(--sidebar-background, 130 35% 34%))",
+          foreground: "hsl(var(--sidebar-foreground, 0 0% 100%))",
+          primary: "hsl(var(--sidebar-primary, 120 25% 65%))",
+          "primary-foreground": "hsl(var(--sidebar-primary-foreground, 0 0% 0%))",
+          accent: "hsl(var(--sidebar-accent, 34 61% 42%))",
+          "accent-foreground": "hsl(var(--sidebar-accent-foreground, 0 0% 100%))",
+          border: "hsl(var(--sidebar-border, 120 25% 75%))",
+          ring: "hsl(var(--sidebar-ring, 130 35% 34%))",
         },
       },
       keyframes: {

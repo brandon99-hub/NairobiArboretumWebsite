@@ -9,6 +9,7 @@ import Visit from "@/pages/Visit";
 import Gallery from "@/pages/Gallery";
 import Events from "@/pages/Events";
 import Contact from "@/pages/Contact";
+import Admin from "@/pages/Admin";
 import NotFound from "@/pages/not-found";
 import { useEffect } from "react";
 
@@ -82,6 +83,16 @@ function App() {
                 <>
                   <ScrollToTop />
                   <Contact />
+                </>
+              );
+            }}
+          </Route>
+          <Route path="/admin">
+            {() => {
+              return (
+                <>
+                  <ScrollToTop />
+                  <Admin />
                 </>
               );
             }}
