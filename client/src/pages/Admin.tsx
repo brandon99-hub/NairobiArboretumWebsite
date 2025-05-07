@@ -29,7 +29,9 @@ export default function Admin() {
   const checkAuth = async () => {
     try {
       setLoading(true);
-      const response = await apiRequest("/api/admin/auth-check");
+      const response = await apiRequest("/api/admin/auth-check", {
+        method: "GET"
+      });
       const data = await response.json();
       
       if (data.authenticated) {
@@ -50,9 +52,8 @@ export default function Admin() {
 
   const handleLogout = async () => {
     try {
-      const response = await fetch("/api/admin/logout", {
-        method: "POST",
-        credentials: "include"
+      const response = await apiRequest("/api/admin/logout", {
+        method: "POST"
       });
       
       setAuthenticated(false);

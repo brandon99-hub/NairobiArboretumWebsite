@@ -73,7 +73,8 @@ export default function AttractionsManager() {
     queryKey: ['/api/attractions'],
     queryFn: async () => {
       const response = await apiRequest('/api/attractions');
-      return response.attractions || [];
+      const data = await response.json();
+      return data.attractions || [];
     }
   });
 
@@ -102,12 +103,11 @@ export default function AttractionsManager() {
   // Add attraction mutation
   const addAttractionMutation = useMutation({
     mutationFn: async (data: AttractionForm) => {
-      return await apiRequest('/api/admin/attractions', {
+      const response = await apiRequest('/api/admin/attractions', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-        credentials: 'include',
+        body: JSON.stringify(data)
       });
+      return await response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/attractions'] });
