@@ -1,17 +1,17 @@
 import { useState, useEffect } from "react";
 import { useLocation, Link } from "wouter";
-import { useToast } from "@/hooks/use-toast";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { apiRequest } from "@/lib/queryClient";
-import AdminLogin from "@/components/admin/AdminLogin";
-import EventsManager from "@/components/admin/EventsManager";
-import NewsManager from "@/components/admin/NewsManager";
-import GalleryManager from "@/components/admin/GalleryManager";
-import AttractionsManager from "@/components/admin/AttractionsManager";
-import ContactMessagesManager from "@/components/admin/ContactMessagesManager";
-import SubscriptionsManager from "@/components/admin/SubscriptionsManager";
+import { useToast } from "../hooks/use-toast";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
+import { Button } from "../components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
+import { apiRequest } from "../lib/queryClient";
+import AdminLogin from "../components/admin/AdminLogin";
+import EventsManager from "../components/admin/EventsManager";
+import NewsManager from "../components/admin/NewsManager";
+import GalleryManager from "../components/admin/GalleryManager";
+import AttractionsManager from "../components/admin/AttractionsManager";
+import ContactMessagesManager from "../components/admin/ContactMessagesManager";
+import SubscriptionsManager from "../components/admin/SubscriptionsManager";
 
 export interface AdminUser {
   id: number;

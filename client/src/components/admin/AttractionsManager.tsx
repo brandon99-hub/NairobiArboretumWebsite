@@ -131,12 +131,11 @@ export default function AttractionsManager() {
   // Edit attraction mutation
   const editAttractionMutation = useMutation({
     mutationFn: async ({ id, data }: { id: number, data: AttractionForm }) => {
-      return await apiRequest(`/api/admin/attractions/${id}`, {
+      const response = await apiRequest(`/api/admin/attractions/${id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-        credentials: 'include',
+        body: JSON.stringify(data)
       });
+      return await response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/attractions'] });
@@ -160,10 +159,10 @@ export default function AttractionsManager() {
   // Delete attraction mutation
   const deleteAttractionMutation = useMutation({
     mutationFn: async (id: number) => {
-      return await apiRequest(`/api/admin/attractions/${id}`, {
-        method: 'DELETE',
-        credentials: 'include',
+      const response = await apiRequest(`/api/admin/attractions/${id}`, {
+        method: 'DELETE'
       });
+      return await response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/attractions'] });
