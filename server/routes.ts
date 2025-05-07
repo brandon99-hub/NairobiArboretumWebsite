@@ -13,7 +13,9 @@ import {
 } from "@shared/schema";
 import { ZodError } from "zod";
 import session from "express-session";
+import connectPgSimple from "connect-pg-simple";
 import { db } from './db';
+import { pool } from './db';
 import bcrypt from 'bcryptjs';
 import passport from 'passport';
 import { Strategy as LocalStrategy } from 'passport-local';
@@ -105,8 +107,14 @@ const requireAdmin = (req: Request, res: Response, next: NextFunction) => {
 };
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Setup session middleware
+  // Setup session middleware with PostgreSQL session store
+  const PgSession = connectPgSimple(session);
   app.use(session({
+    store: new PgSession({
+      pool: pool,
+      tableName: 'session', // Use default table name
+      createTableIfMissing: true // Create the session table if it doesn't exist
+    }),
     secret: process.env.SESSION_SECRET || 'nairobi-arboretum-secret',
     resave: false,
     saveUninitialized: false,
@@ -488,13 +496,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      let updateData = req.body;
+      // Only update imageUrl if a new image was uploaded
+      let imageUrl;
       if (req.file) {
-        // If image uploaded, set the URL to the file path
-        updateData.imageUrl = `/uploads/${req.file.filename}`;
+        imageUrl = `/uploads/${req.file.filename}`;
       }
       
-      const newsData = insertNewsSchema.partial().parse(updateData);
+      const newsData = insertNewsSchema.partial().parse({
+        ...req.body,
+        ...(imageUrl && { imageUrl })
+      });
+      
       const newsItem = await storage.updateNews(id, newsData);
       res.status(200).json({ success: true, news: newsItem });
     } catch (error) {
@@ -524,15 +536,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      const newsItem = await storage.getNewsItem(id);
-      if (newsItem && newsItem.imageUrl) {
-        // Delete the file if it exists
-        const filePath = path.join(process.cwd(), newsItem.imageUrl);
-        if (fs.existsSync(filePath)) {
-          fs.unlinkSync(filePath);
-        }
-      }
-      
       await storage.deleteNews(id);
       res.status(200).json({ success: true, message: "News item deleted successfully" });
     } catch (error) {
@@ -548,34 +551,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/admin/gallery", requireAdmin, upload.single('image'), async (req, res) => {
     try {
       if (!req.file) {
-        return res.status(400).json({
-          success: false,
-          message: "Image file is required"
+        return res.status(400).json({ 
+          success: false, 
+          message: "Image file is required" 
         });
       }
       
       const imageUrl = `/uploads/${req.file.filename}`;
       
-      const imageData = insertGalleryImageSchema.parse({
+      const galleryData = insertGalleryImageSchema.parse({
         ...req.body,
-        src: imageUrl,
+        imageUrl,
         createdBy: (req.user as any).id
       });
       
-      const image = await storage.createGalleryImage(imageData);
+      const image = await storage.createGalleryImage(galleryData);
       res.status(201).json({ success: true, image });
     } catch (error) {
       if (error instanceof ZodError) {
         res.status(400).json({ 
           success: false, 
-          message: "Invalid image data", 
+          message: "Invalid gallery image data", 
           errors: error.errors 
         });
       } else {
         console.error("Error creating gallery image:", error);
         res.status(500).json({ 
           success: false, 
-          message: "Failed to upload image. Please try again later." 
+          message: "Failed to add gallery image. Please try again later." 
         });
       }
     }
@@ -587,40 +590,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (isNaN(id)) {
         return res.status(400).json({ 
           success: false, 
-          message: "Invalid image ID" 
+          message: "Invalid gallery image ID" 
         });
       }
       
-      let updateData = req.body;
+      // Only update imageUrl if a new image was uploaded
+      let imageUrl;
       if (req.file) {
-        // If new image uploaded, update the URL
-        updateData.src = `/uploads/${req.file.filename}`;
-        
-        // Delete old image if it exists
-        const image = await storage.getGalleryImage(id);
-        if (image && image.src) {
-          const filePath = path.join(process.cwd(), image.src);
-          if (fs.existsSync(filePath)) {
-            fs.unlinkSync(filePath);
-          }
-        }
+        imageUrl = `/uploads/${req.file.filename}`;
       }
       
-      const imageData = insertGalleryImageSchema.partial().parse(updateData);
-      const updatedImage = await storage.updateGalleryImage(id, imageData);
-      res.status(200).json({ success: true, image: updatedImage });
+      const galleryData = insertGalleryImageSchema.partial().parse({
+        ...req.body,
+        ...(imageUrl && { imageUrl })
+      });
+      
+      const image = await storage.updateGalleryImage(id, galleryData);
+      res.status(200).json({ success: true, image });
     } catch (error) {
       if (error instanceof ZodError) {
         res.status(400).json({ 
           success: false, 
-          message: "Invalid image data", 
+          message: "Invalid gallery image data", 
           errors: error.errors 
         });
       } else {
         console.error("Error updating gallery image:", error);
         res.status(500).json({ 
           success: false, 
-          message: "Failed to update image. Please try again later." 
+          message: "Failed to update gallery image. Please try again later." 
         });
       }
     }
@@ -632,17 +630,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (isNaN(id)) {
         return res.status(400).json({ 
           success: false, 
-          message: "Invalid image ID" 
+          message: "Invalid gallery image ID" 
         });
-      }
-      
-      const image = await storage.getGalleryImage(id);
-      if (image && image.src) {
-        // Delete the file if it exists
-        const filePath = path.join(process.cwd(), image.src);
-        if (fs.existsSync(filePath)) {
-          fs.unlinkSync(filePath);
-        }
       }
       
       await storage.deleteGalleryImage(id);
@@ -651,7 +640,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error("Error deleting gallery image:", error);
       res.status(500).json({ 
         success: false, 
-        message: "Failed to delete image. Please try again later." 
+        message: "Failed to delete gallery image. Please try again later." 
       });
     }
   });
@@ -660,31 +649,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/admin/attractions", requireAdmin, upload.single('image'), async (req, res) => {
     try {
       if (!req.file) {
-        return res.status(400).json({
-          success: false,
-          message: "Image file is required"
+        return res.status(400).json({ 
+          success: false, 
+          message: "Image file is required" 
         });
       }
       
       const imageUrl = `/uploads/${req.file.filename}`;
       
-      // Handle features array
-      let features = [];
-      if (req.body.features) {
-        try {
-          features = JSON.parse(req.body.features);
-        } catch (e) {
-          return res.status(400).json({
-            success: false,
-            message: "Features must be a valid JSON array"
-          });
-        }
-      }
-      
       const attractionData = insertAttractionSchema.parse({
         ...req.body,
-        image: imageUrl,
-        features,
+        imageUrl,
         createdBy: (req.user as any).id
       });
       
@@ -701,7 +676,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.error("Error creating attraction:", error);
         res.status(500).json({ 
           success: false, 
-          message: "Failed to create attraction. Please try again later." 
+          message: "Failed to add attraction. Please try again later." 
         });
       }
     }
@@ -717,36 +692,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      let updateData = req.body;
+      // Only update imageUrl if a new image was uploaded
+      let imageUrl;
       if (req.file) {
-        // If new image uploaded, update the URL
-        updateData.image = `/uploads/${req.file.filename}`;
-        
-        // Delete old image if it exists
-        const attraction = await storage.getAttraction(id);
-        if (attraction && attraction.image) {
-          const filePath = path.join(process.cwd(), attraction.image);
-          if (fs.existsSync(filePath)) {
-            fs.unlinkSync(filePath);
-          }
-        }
+        imageUrl = `/uploads/${req.file.filename}`;
       }
       
-      // Handle features array
-      if (updateData.features) {
-        try {
-          updateData.features = JSON.parse(updateData.features);
-        } catch (e) {
-          return res.status(400).json({
-            success: false,
-            message: "Features must be a valid JSON array"
-          });
-        }
-      }
+      const attractionData = insertAttractionSchema.partial().parse({
+        ...req.body,
+        ...(imageUrl && { imageUrl })
+      });
       
-      const attractionData = insertAttractionSchema.partial().parse(updateData);
-      const updatedAttraction = await storage.updateAttraction(id, attractionData);
-      res.status(200).json({ success: true, attraction: updatedAttraction });
+      const attraction = await storage.updateAttraction(id, attractionData);
+      res.status(200).json({ success: true, attraction });
     } catch (error) {
       if (error instanceof ZodError) {
         res.status(400).json({ 
@@ -774,15 +732,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      const attraction = await storage.getAttraction(id);
-      if (attraction && attraction.image) {
-        // Delete the file if it exists
-        const filePath = path.join(process.cwd(), attraction.image);
-        if (fs.existsSync(filePath)) {
-          fs.unlinkSync(filePath);
-        }
-      }
-      
       await storage.deleteAttraction(id);
       res.status(200).json({ success: true, message: "Attraction deleted successfully" });
     } catch (error) {
@@ -793,60 +742,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   });
-  
-  // Create initial admin user if none exists
-  app.post("/api/setup", async (req, res) => {
-    try {
-      // Check if there's already an admin user
-      const users = await db.query.users.findMany({
-        where: (users, { eq }) => eq(users.isAdmin, true)
-      });
-      
-      if (users.length > 0) {
-        return res.status(403).json({
-          success: false,
-          message: "Admin user already exists"
-        });
-      }
-      
-      // Validate and hash password
-      const userData = insertUserSchema.parse(req.body);
-      const hashedPassword = await bcrypt.hash(userData.password, 10);
-      
-      // Create the admin user
-      const adminUser = await storage.createUser({
-        ...userData,
-        password: hashedPassword,
-        isAdmin: true
-      });
-      
-      res.status(201).json({
-        success: true,
-        message: "Admin user created successfully",
-        user: {
-          id: adminUser.id,
-          username: adminUser.username,
-          email: adminUser.email,
-          isAdmin: adminUser.isAdmin
-        }
-      });
-    } catch (error) {
-      if (error instanceof ZodError) {
-        res.status(400).json({
-          success: false,
-          message: "Invalid user data",
-          errors: error.errors
-        });
-      } else {
-        console.error("Error creating admin user:", error);
-        res.status(500).json({
-          success: false,
-          message: "Failed to create admin user. Please try again later."
-        });
-      }
-    }
-  });
 
-  const httpServer = createServer(app);
-  return httpServer;
+  return createServer(app);
 }
