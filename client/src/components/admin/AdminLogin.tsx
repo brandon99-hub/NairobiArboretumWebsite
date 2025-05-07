@@ -5,11 +5,11 @@ import { z } from "zod";
 import { 
   Form, FormControl, FormField, FormItem, 
   FormLabel, FormMessage 
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
+} from "../../components/ui/form";
+import { Input } from "../../components/ui/input";
+import { Button } from "../../components/ui/button";
+import { useToast } from "../../hooks/use-toast";
+import { apiRequest } from "../../lib/queryClient";
 
 const loginSchema = z.object({
   username: z.string().min(1, { message: "Username is required" }),
@@ -37,6 +37,8 @@ export default function AdminLogin({ onLoginSuccess }: AdminLoginProps) {
   const onSubmit = async (data: LoginForm) => {
     try {
       setLoading(true);
+      
+      // Special handling for login since passport returns 401 on failure
       const response = await fetch('/api/admin/login', {
         method: 'POST',
         headers: {
@@ -45,6 +47,14 @@ export default function AdminLogin({ onLoginSuccess }: AdminLoginProps) {
         body: JSON.stringify(data),
         credentials: 'include',
       });
+      
+      if (!response.ok) {
+        throw new Error(response.status === 401 
+          ? "Invalid username or password" 
+          : "Login failed. Please try again.");
+      }
+      
+      const responseData = await response.json();
       
       toast({
         title: "Login successful",
@@ -56,7 +66,7 @@ export default function AdminLogin({ onLoginSuccess }: AdminLoginProps) {
       console.error("Login error:", error);
       toast({
         title: "Login failed",
-        description: "Invalid username or password. Please try again.",
+        description: error instanceof Error ? error.message : "Invalid username or password. Please try again.",
         variant: "destructive",
       });
     } finally {
